@@ -7,6 +7,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from captioning import ImageCaptioning
+from utils import get_best_model
 
 
 def main(hparams):
@@ -25,9 +26,8 @@ def main(hparams):
         trainer.fit(model)
         # trainer.test(model)
     else:
-        model = ImageCaptioning.load_from_checkpoint(
-            checkpoint_path="models/epoch=104-val_loss=1.05.ckpt"
-        )
+        checkpoint_path = get_best_model("models/")
+        model = ImageCaptioning.load_from_checkpoint(checkpoint_path=checkpoint_path)
         trainer.test(model)
 
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     )
 
     # gpu args
-    parent_parser.add_argument("--gpus", type=int, default=0, help="how many gpus")
+    parent_parser.add_argument("--gpus", type=int, default=2, help="how many gpus")
     parent_parser.add_argument(
         "--distributed_backend",
         type=str,

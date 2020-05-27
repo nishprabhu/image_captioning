@@ -113,8 +113,13 @@ class RNN(Decoder):
         return output
 
     def reset_state(self, shape):
-        """ Reset the LSTM state  """
-        self.hidden_state = (torch.zeros(shape), torch.zeros(shape))
+        """ Reset the LSTM state """
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device(device)
+        self.hidden_state = (
+            torch.zeros(shape, device=device),
+            torch.zeros(shape, device=device),
+        )
 
 
 def main():

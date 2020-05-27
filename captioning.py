@@ -15,6 +15,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core import LightningModule
 
 from modeling import Dataset, CaptioningModel, collate_fn
+from utils import get_text
 
 
 class ImageCaptioning(LightningModule):
@@ -102,8 +103,10 @@ class ImageCaptioning(LightningModule):
         images, captions = batch
         outputs = self.model(images, captions)
 
-        ## Write code to get captions from model outputs
-        return outputs
+        # Get token indices
+        captions = torch.argmax(torch.softmax(outputs, dim=-1), dim=-1)
+        output = {"captions": captions}
+        return output
 
     def test_epoch_end(self, outputs):
         """
@@ -111,48 +114,24 @@ class ImageCaptioning(LightningModule):
         :param outputs: list of individual outputs of each test step
         """
 
-        predictions = []
-        cases = []
-        geoids = []
-        mean = []
-        std = []
+        captions = []
         for output in outputs:
-            predictions.append(output["predictions"])
-            cases.append(output["cases"])
-            geoids.append(output["geoids"])
-            mean.append(output["mean"])
-            std.append(output["std"])
-        predictions = torch.cat(predictions, dim=0)
-        cases = torch.cat(cases, dim=0)
-        geoids = torch.cat(geoids, dim=0).squeeze()
-        mean = torch.cat(mean, dim=0).squeeze()
-        std = torch.cat(std, dim=0).squeeze()
+            captions.append(output["captions"])
+        captions = torch.cat(captions, dim=0)
 
-        # Un-normalize the data
-        predictions = (predictions * std.unsqueeze(1)) + mean.unsqueeze(1)
-        cases = (cases * std.unsqueeze(1)) + mean.unsqueeze(1)
-
-        predictions[predictions < 0] = 0
-
-        # compute mean absolute error
-        mae = F.l1_loss(predictions, cases)
+        captions = get_text(captions.cpu().numpy())
 
         # Write outputs to disk
-        columns = list(range(1, 8))
-        predictions = pd.DataFrame(data=predictions.numpy(), columns=columns)
-        cases = pd.DataFrame(data=cases.numpy(), columns=columns)
-        geoids = geoids.numpy().squeeze().tolist()
-        predictions.insert(0, "geoid", geoids)
-        cases.insert(0, "geoid", geoids)
-        predictions.to_csv("cases_predictions.csv", header=True, index=False)
-        cases.to_csv("cases.csv", header=True, index=False)
+        with open("outputs.txt", "w") as file:
+            for caption in captions:
+                file.write(caption)
+                file.write("\n")
 
         # create output dict
-        tqdm_dict = {"mae": mae}
+        tqdm_dict = {}
         results = {}
         results["progress_bar"] = tqdm_dict
         results["log"] = tqdm_dict
-        results["mae"] = mae
 
         return results
 
