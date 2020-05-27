@@ -13,18 +13,16 @@ from transformers import BertTokenizer
 from seq2seq import Decoder
 
 
-class TransformedCocoCaptions(CocoCaptions):
+class Dataset(CocoCaptions):
     """ Extends the CocoCaptions class with a custom transform """
 
     def __init__(self, root, annFile):
         transforms = Compose([Resize((400, 400)), ToTensor()])
-        super(TransformedCocoCaptions, self).__init__(
-            root, annFile, transform=transforms
-        )
+        super().__init__(root, annFile, transform=transforms)
         self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
     def __getitem__(self, idx):
-        image, captions = super(TransformedCocoCaptions, self).__getitem__(idx)
+        image, captions = super().__getitem__(idx)
         caption = random.choice(captions)
         caption = self.tokenizer.encode(caption, add_special_tokens=True)
         caption = torch.tensor(caption)
@@ -43,17 +41,17 @@ class CaptioningModel(nn.Module):
     """ Image captioning model """
 
     def __init__(self, vocab_size, embedding_dim, encoder_output_dim):
-        super(CaptioningModel, self).__init__()
+        super().__init__()
         self.cnn = resnet18(pretrained=True)
         self.cnn = nn.Sequential(*list(self.cnn.children())[:-1])
         self.intermediate = nn.Linear(512, 120)
         self.rnn = RNN(vocab_size, embedding_dim, encoder_output_dim)
 
-    def forward(self, images, captions):
+    def forward(self, images, captions, predict=False):
         """ Forward pass of the image captioning model """
         features = self.cnn(images)
         features = self.intermediate(features.squeeze())
-        captions = self.rnn(features, captions)
+        captions = self.rnn(features, captions, predict)
         return captions
 
 
@@ -68,7 +66,7 @@ class RNN(Decoder):
         num_layers=2,
         max_target_length=30,
     ):
-        super(RNN, self).__init__()
+        super().__init__()
 
         # Hyperparamters
         self.max_target_length = max_target_length
@@ -123,7 +121,7 @@ def main():
     """ Main function """
     root = "coco_dataset/train2017"
     ann_file = "coco_dataset/annotations/captions_train2017.json"
-    dataset = TransformedCocoCaptions(root, ann_file)
+    dataset = Dataset(root, ann_file)
     dataloader = DataLoader(dataset, batch_size=10, collate_fn=collate_fn)
 
     vocab_size = dataset.tokenizer.vocab_size
@@ -137,7 +135,7 @@ def main():
         print(images.shape)
         print(captions.shape)
 
-        output = model(images, captions)
+        output = model(images, captions, predict=True)
         print(output.shape)
         break
 
