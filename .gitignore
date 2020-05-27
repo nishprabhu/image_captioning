@@ -1,4 +1,4 @@
 coco_dataset/
 __pycache__/
-lightning_logs
-models
+lightning_logs/
+models/
