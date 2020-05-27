@@ -14,7 +14,8 @@ from transformers import BertTokenizer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core import LightningModule
 
-from modeling import Dataset, CaptioningModel, collate_fn
+from captioning_model import CaptioningModel
+from dataset import Dataset, collate_fn
 from utils import get_text
 
 
@@ -29,7 +30,11 @@ class ImageCaptioning(LightningModule):
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         vocab_size = tokenizer.vocab_size
         self.model = CaptioningModel(
-            vocab_size, hparams.embedding_dim, hparams.encoder_output_dim
+            hparams.encoder_output_dim,
+            hparams.decoder_type,
+            vocab_size,
+            hparams.embedding_dim,
+            hparams.num_decoder_layers,
         )
 
     def forward(self):
@@ -180,19 +185,25 @@ class ImageCaptioning(LightningModule):
         """
         parser = ArgumentParser(parents=[parent_parser])
 
-        # network params
-        parser.add_argument("--embedding_dim", default=300, type=int)
+        # CNN Hyperparams
         parser.add_argument("--encoder_output_dim", default=120, type=int)
-        parser.add_argument("--num_rnn_layers", default=2, type=int)
+
+        # Decoder Hyperparams
+        parser.add_argument("--decoder_type", default="transformer", type=str)
+        parser.add_argument("--embedding_dim", default=300, type=int)
+        parser.add_argument("--num_decoder_layers", default=6, type=int)
+
+        # Training Hyperparams
         parser.add_argument("--drop_prob", default=0.2, type=float)
         parser.add_argument("--learning_rate", default=0.001, type=float)
-
-        # data
-        parser.add_argument(
-            "--data_root", default=os.path.join(root_dir, "coco_dataset"), type=str
-        )
-
-        # training params (opt)
         parser.add_argument("--epochs", default=30, type=int)
         parser.add_argument("--batch_size", default=64, type=int)
+
+        # Data Path
+        parser.add_argument(
+            "--data_root",
+            default=os.path.join(root_dir, "../image_captioning/coco_dataset"),
+            type=str,
+        )
+
         return parser

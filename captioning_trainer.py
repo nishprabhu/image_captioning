@@ -8,6 +8,9 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 from captioning import ImageCaptioning
 from utils import get_best_model
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 def main(hparams):
@@ -40,7 +43,7 @@ if __name__ == "__main__":
     )
 
     # gpu args
-    parent_parser.add_argument("--gpus", type=int, default=2, help="how many gpus")
+    parent_parser.add_argument("--gpus", type=int, default=0, help="how many gpus")
     parent_parser.add_argument(
         "--distributed_backend",
         type=str,

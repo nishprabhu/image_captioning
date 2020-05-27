@@ -30,7 +30,7 @@ class Decoder(nn.Module):
         max_target_length=30,
         **kwargs
     ):
-        """ 
+        """
         Forward pass
 
         Arguments:
