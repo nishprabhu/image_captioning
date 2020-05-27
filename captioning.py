@@ -201,9 +201,7 @@ class ImageCaptioning(LightningModule):
 
         # Data Path
         parser.add_argument(
-            "--data_root",
-            default=os.path.join(root_dir, "../image_captioning/coco_dataset"),
-            type=str,
+            "--data_root", default=os.path.join(root_dir, "coco_dataset"), type=str,
         )
 
         return parser
