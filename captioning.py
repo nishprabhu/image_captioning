@@ -15,7 +15,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core import LightningModule
 
 from captioning_model import CaptioningModel
-from dataset import Dataset, collate_fn
+from dataset import Dataset, TestDataset, collate_fn
 from utils import get_text
 
 
@@ -27,8 +27,13 @@ class ImageCaptioning(LightningModule):
         super().__init__()
         self.hparams = hparams
         self.batch_size = hparams.batch_size
-        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        vocab_size = tokenizer.vocab_size
+
+        # Tokenizer
+        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        self.start_token_id = self.tokenizer.cls_token_id
+        vocab_size = self.tokenizer.vocab_size
+
+        # Model
         self.model = CaptioningModel(
             hparams.encoder_output_dim,
             hparams.decoder_type,
@@ -124,7 +129,7 @@ class ImageCaptioning(LightningModule):
             captions.append(output["captions"])
         captions = torch.cat(captions, dim=0)
 
-        captions = get_text(captions.cpu().numpy())
+        captions = get_text(captions.cpu().numpy(), self.tokenizer)
 
         # Write outputs to disk
         with open("outputs.txt", "w") as file:
@@ -155,7 +160,10 @@ class ImageCaptioning(LightningModule):
         annotations_path = os.path.join(
             self.hparams.data_root, "annotations", annotations_filename
         )
-        dataset = Dataset(root=root, annFile=annotations_path)
+        if "test" in root.lower():
+            dataset = TestDataset(root, self.tokenizer, self.start_token_id)
+        else:
+            dataset = Dataset(root, annotations_path, self.tokenizer)
         # when using multi-node (ddp) we need to add the  datasampler
         batch_size = self.hparams.batch_size
         loader = DataLoader(

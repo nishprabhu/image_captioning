@@ -8,9 +8,10 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 from captioning import ImageCaptioning
 from utils import get_best_model
-import warnings
 
-warnings.filterwarnings("ignore")
+# import warnings
+#
+# warnings.filterwarnings("ignore")
 
 
 def main(hparams):
