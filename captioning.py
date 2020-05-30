@@ -93,7 +93,6 @@ class ImageCaptioning(LightningModule):
         val_loss_mean = 0
         for output in outputs:
             val_loss = output["val_loss"]
-
             # reduce manually when using dp
             if self.trainer.use_dp or self.trainer.use_ddp2:
                 val_loss = torch.mean(val_loss)
@@ -115,7 +114,7 @@ class ImageCaptioning(LightningModule):
 
         # Get token indices
         captions = torch.argmax(torch.softmax(outputs, dim=-1), dim=-1)
-        output = {"captions": captions}
+        output = {"images": images, "captions": captions}
         return output
 
     def test_epoch_end(self, outputs):
@@ -124,12 +123,16 @@ class ImageCaptioning(LightningModule):
         :param outputs: list of individual outputs of each test step
         """
 
+        images = []
         captions = []
         for output in outputs:
             captions.append(output["captions"])
+            images.append(output["images"])
         captions = torch.cat(captions, dim=0)
+        images = torch.cat(images, dim=0)
 
         captions = get_text(captions.cpu().numpy(), self.tokenizer)
+        self.logger.experiment.add_image(captions[0], images[0])
 
         # Write outputs to disk
         with open("outputs.txt", "w") as file:
